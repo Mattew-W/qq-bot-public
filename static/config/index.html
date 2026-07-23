@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 管家 QQ 机器人 - 配置中心</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --bg-card: #161b22;
+            --bg-input: #0d1117;
+            --border: #30363d;
+            --border-focus: #58a6ff;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #388bfd;
+            --success: #3fb950;
+            --warning: #d29922;
+            --danger: #f85149;
+            --radius: 8px;
+            --shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #58a6ff, #a371f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--warning);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: var(--bg-card);
+            padding: 4px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .panel {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title .icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent), #a371f7);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .form-group label .required {
+            color: var(--danger);
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+        }
+
+        .form-group input::placeholder {
+            color: #484f58;
+        }
+
+        .form-group .hint {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .toggle-group {
+            flex-direction: row !important;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .toggle-group span {
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            background: var(--border);
+            border-radius: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle.on {
+            background: var(--accent);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle.on::after {
+            transform: translateX(18px);
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-group input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            border: none;
+            padding: 0;
+        }
+
+        .slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            min-width: 50px;
+            text-align: right;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-muted);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .toast.error {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        @media (max-width: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 20px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI 管家 QQ 机器人</h1>
+            <p>配置中心 — 管理 API 密钥与系统参数</p>
+            <div class="status-bar">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">正在连接...</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="llm">🧠 LLM 配置</button>
+            <button class="tab" data-tab="bot">📡 机器人</button>
+            <button class="tab" data-tab="antispam">🛡️ 反垃圾</button>
+            <button class="tab" data-tab="knowledge">📚 知识库</button>
+            <button class="tab" data-tab="advanced">⚙️ 高级</button>
+        </div>
+
+        <!-- LLM 配置 -->
+        <div class="panel active" id="panel-llm">
+            <div class="panel-title">
+                <div class="icon">🧠</div>
+                LongCat LLM 配置
+            </div>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>API Base URL <span class="required">*</span></label>
+                    <input type="text" id="LONGCAT_API_BASE" placeholder="https://api.longcat.ai/v1">
+                    <span class="hint">LongCat API 的基础地址</span>
+                </div>
+                <div class="form-group full-width">
+                    <label>API Key <span class="required">*</span></label>
+                    <input type="password" id="LONGCAT_API_KEY" placeholder="sk-...">
+                    <span class="hint">你的 LongCat API 密钥</span>
+                </div>
+                <div class="form-group">
+                    <label>模型名称</label>
+                    <input type="text" id="LONGCAT_MODEL" placeholder="longcat-chat">
+                </div>
+                <div class="form-group">
+                    <label>最大 Token 数</label>
+                    <input type="number" id="LONGCAT_MAX_TOKENS" placeholder="2048" min="1" max="128000">
+                </div>
+                <div class="form-group full-width">
+                    <label>Temperature (温度): <span id="tempValue">0.7</span></label>
+                    <div class="slider-group">
+                        <input type="range" id="LONGCAT_TEMPERATURE" min="0" max="2" step="0.1" value="0.7">
+                    </div>
+                    <span class="hint">控制回复的随机性。0 = 确定性，2 = 创造性</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 机器人配置 -->
+        <div class="panel" id="panel-bot">
+            <div class="panel-title">
+                <div class="icon">📡</div>
+                机器人基础配置
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>App ID</label>
+                    <input type="text" id="BOT_APP_ID" placeholder="123456789">
+                </div>
+                <div class="form-group">
+                    <label>App Secret</label>
+                    <input type="password" id="BOT_SECRET" placeholder="your-bot-secret">
+                </div>
+                <div class="form-group full-width">
+                    <label>Bot Token</label>
+                    <input type="password" id="BOT_TOKEN" placeholder="your-bot-token">
+                </div>
+                <div class="form-group full-width">
+                    <label>OneBot WebSocket URL <span class="required">*</span></label>
+                    <input type="text" id="ONEBOT_WS_URL" placeholder="ws://127.0.0.1:8080">
+                    <span class="hint">NapCat / Lagrange 的 WebSocket 地址</span>
+                </div>
+                <div class="form-group full-width">
+                    <label>Access Token</label>
+                    <input type="password" id="ONEBOT_ACCESS_TOKEN" placeholder="可选">
+                    <span class="hint">如果 OneBot 端设置了访问令牌，请填写</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 反垃圾配置 -->
+        <div class="panel" id="panel-antispam">
+            <div class="panel-title">
+                <div class="icon">🛡️</div>
+                反垃圾配置
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>LLM 确认阈值</label>
+                    <input type="number" id="ANTISPAM_THRESHOLD_LLM" placeholder="40" min="0" max="100">
+                    <span class="hint">达到此分数时触发 LLM 二次确认</span>
+                </div>
+                <div class="form-group">
+                    <label>禁言阈值</label>
+                    <input type="number" id="ANTISPAM_THRESHOLD_BAN" placeholder="70" min="0" max="100">
+                    <span class="hint">达到此分数时自动禁言</span>
+                </div>
+                <div class="form-group">
+                    <label>踢人阈值</label>
+                    <input type="number" id="ANTISPAM_THRESHOLD_KICK" placeholder="90" min="0" max="100">
+                    <span class="hint">达到此分数时自动踢人</span>
+                </div>
+                <div class="form-group full-width">
+                    <label>规则目录</label>
+                    <input type="text" id="ANTISPAM_RULES_DIR" placeholder="./data/rules">
+                </div>
+            </div>
+        </div>
+
+        <!-- 知识库配置 -->
+        <div class="panel" id="panel-knowledge">
+            <div class="panel-title">
+                <div class="icon">📚</div>
+                知识库配置
+            </div>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>知识库目录</label>
+                    <input type="text" id="KNOWLEDGE_DIR" placeholder="./data/knowledge">
+                </div>
+                <div class="form-group">
+                    <label>分块大小</label>
+                    <input type="number" id="KNOWLEDGE_CHUNK_SIZE" placeholder="500" min="100">
+                    <span class="hint">每块最大字符数</span>
+                </div>
+                <div class="form-group">
+                    <label>重叠大小</label>
+                    <input type="number" id="KNOWLEDGE_CHUNK_OVERLAP" placeholder="50" min="0">
+                    <span class="hint">相邻块重叠字符数</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 高级配置 -->
+        <div class="panel" id="panel-advanced">
+            <div class="panel-title">
+                <div class="icon">⚙️</div>
+                高级配置
+            </div>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>数据库 URL</label>
+                    <input type="text" id="DATABASE_URL" placeholder="sqlite:///./data/qqbot.db">
+                </div>
+                <div class="form-group">
+                    <label>日志级别</label>
+                    <select id="LOG_LEVEL">
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="INFO" selected>INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="ERROR">ERROR</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>日志保留天数</label>
+                    <input type="number" id="LOG_RETENTION" placeholder="30" min="1">
+                </div>
+                <div class="form-group full-width">
+                    <label>日志目录</label>
+                    <input type="text" id="LOG_DIR" placeholder="./logs">
+                </div>
+                <div class="form-group full-width">
+                    <label>美团数据目录</label>
+                    <input type="text" id="MEITUAN_DATA_DIR" placeholder="./data/meituan">
+                </div>
+                <div class="form-group full-width toggle-group">
+                    <span>🐛 调试模式 (DEBUG)</span>
+                    <div class="toggle" id="DEBUG"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="saveConfig()">
+                💾 保存配置
+            </button>
+            <button class="btn btn-secondary" onclick="reloadConfig()">
+                🔄 重新加载
+            </button>
+            <button class="btn btn-secondary" onclick="testConnection()">
+                🔗 测试连接
+            </button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE = '/api/config';
+        let currentConfig = {};
+
+        // === 标签页切换 ===
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // === Toggle 开关 ===
+        document.querySelectorAll('.toggle').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                toggle.classList.toggle('on');
+            });
+        });
+
+        // === Temperature 滑块 ===
+        const tempSlider = document.getElementById('LONGCAT_TEMPERATURE');
+        const tempValue = document.getElementById('tempValue');
+        tempSlider.addEventListener('input', () => {
+            tempValue.textContent = parseFloat(tempSlider.value).toFixed(1);
+        });
+
+        // === Toast 通知 ===
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // === 加载配置 ===
+        async function loadConfig() {
+            try {
+                const res = await fetch(API_BASE);
+                const data = await res.json();
+                if (data.code === 0) {
+                    currentConfig = data.data;
+                    fillForm(data.data);
+                    updateStatus(true);
+                } else {
+                    showToast('加载失败: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showToast('连接失败: ' + e.message, 'error');
+                updateStatus(false);
+            }
+        }
+
+        function fillForm(config) {
+            for (const [key, value] of Object.entries(config)) {
+                const el = document.getElementById(key);
+                if (!el) continue;
+
+                if (el.type === 'checkbox' || el.classList.contains('toggle')) {
+                    if (el.classList.contains('toggle')) {
+                        el.classList.toggle('on', value === true || value === 'true');
+                    } else {
+                        el.checked = value === true || value === 'true';
+                    }
+                } else if (el.type === 'range') {
+                    el.value = value;
+                    const display = document.getElementById(key.toLowerCase() + 'Value');
+                    if (display) display.textContent = parseFloat(value).toFixed(1);
+                } else {
+                    el.value = value || '';
+                }
+            }
+        }
+
+        function collectForm() {
+            const data = {};
+            document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(el => {
+                if (el.id) {
+                    if (el.type === 'number') {
+                        data[el.id] = el.value ? Number(el.value) : '';
+                    } else {
+                        data[el.id] = el.value;
+                    }
+                }
+            });
+            // Toggle
+            const debugToggle = document.getElementById('DEBUG');
+            if (debugToggle) {
+                data['DEBUG'] = debugToggle.classList.contains('on');
+            }
+            return data;
+        }
+
+        // === 保存配置 ===
+        async function saveConfig() {
+            const data = collectForm();
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                const result = await res.json();
+                if (result.code === 0) {
+                    showToast('✅ ' + result.message);
+                } else {
+                    showToast('❌ ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('❌ 保存失败: ' + e.message, 'error');
+            }
+        }
+
+        // === 重新加载 ===
+        function reloadConfig() {
+            loadConfig();
+            showToast('🔄 已重新加载');
+        }
+
+        // === 测试连接 ===
+        async function testConnection() {
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    showToast('✅ 服务连接正常');
+                    updateStatus(true);
+                } else {
+                    showToast('❌ 服务异常', 'error');
+                    updateStatus(false);
+                }
+            } catch (e) {
+                showToast('❌ 无法连接到服务', 'error');
+                updateStatus(false);
+            }
+        }
+
+        function updateStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            if (connected) {
+                dot.classList.add('connected');
+                text.textContent = '服务已连接';
+            } else {
+                dot.classList.remove('connected');
+                text.textContent = '连接失败';
+            }
+        }
+
+        // === 初始化 ===
+        loadConfig();
+    </script>
+</body>
+</html>

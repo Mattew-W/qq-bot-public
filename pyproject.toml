@@ -1,0 +1,65 @@
+[project]
+name = "qq-bot"
+version = "0.1.0"
+description = "AI 管家 QQ 群机器人 - 基于 NoneBot2 + OneBot v11 + LongCat 2.0"
+requires-python = ">=3.11"
+readme = "README.md"
+
+dependencies = [
+    "nonebot2[fastapi]>=2.3.0",
+    "nonebot-adapter-onebot>=2.4.0",
+    "nonebot-plugin-apscheduler>=0.4.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    "python-dotenv>=1.0.0",
+    "sqlalchemy>=2.0.0",
+    "aiosqlite>=0.20.0",
+    "loguru>=0.7.0",
+    "tenacity>=8.2.0",
+    "pyyaml>=6.0.0",
+    "openpyxl>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.4.0",
+    "mypy>=1.9.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "adapters",
+    "config",
+    "core",
+    "database",
+    "models",
+    "plugins",
+    "routers",
+    "services",
+    "tests",
+    "utils",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

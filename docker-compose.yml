@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  # === NapCat: QQ 协议前端 ===
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: napcat
+    restart: unless-stopped
+    environment:
+      - ACCOUNT=你的QQ号
+      - WS_URL=ws://qq-bot:8080  # 连接到 bot 的 WebSocket
+      - TOKEN=your-websocket-token  # 与 .env 中 ONEBOT_ACCESS_TOKEN 一致
+    ports:
+      - "6099:6099"  # NapCat WebUI
+    volumes:
+      - napcat-data:/app/napcat
+    networks:
+      - qq-bot-net
+
+  # === QQ 机器人后端 ===
+  qq-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qq-bot
+    restart: unless-stopped
+    ports:
+      - "8000:8000"   # FastAPI 管理界面 / Web 配置 UI
+      - "8080:8080"   # OneBot WebSocket 反向连接端口
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - qq-bot-net
+    depends_on:
+      - napcat
+
+networks:
+  qq-bot-net:
+    driver: bridge
+
+volumes:
+  napcat-data:
