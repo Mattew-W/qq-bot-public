@@ -1,8 +1,13 @@
 version: "3.8"
 
 services:
-  # === OneBot 协议前端 (NapCat / Lagrange 等) ===
+  # === OneBot 协议前端 ===
+  # 请使用你选择的 OneBot v11 实现（如 NapCat、Lagrange.OneBot、OpenShamrock 等）
+  # 此处以 NapCat 为例，请参考对应项目的部署文档
+  # NapCat 项目地址: https://github.com/NapNeko/NapCatQQ
   onebot:
+    # 请替换为你使用的 OneBot 实现的 Docker 镜像
+    # NapCat Docker: mlikiowa/napcat-docker:latest
     image: mlikiowa/napcat-docker:latest
     container_name: onebot
     restart: unless-stopped

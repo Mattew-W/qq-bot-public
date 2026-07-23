@@ -1,138 +1,45 @@
 # QQ Bot Framework
 
-基于 NoneBot2 + OneBot v11 的可扩展 QQ 群机器人框架。
+基于 **NoneBot2 + OneBot v11** 的可扩展 QQ 群机器人开发框架。
 
-本框架提供了一套完整的 QQ 群机器人开发脚手架，开发者可基于此框架快速构建自己的群聊天机器人，无需从零搭建基础设施。
+下载后只需填入 API Key、配置 OneBot 实现，即可拥有一台带 AI 问答、智能反垃圾、数据分析的 QQ 群机器人。
 
-## 架构设计
+## 架构总览
 
 ```
+QQ 用户发消息
+    ↓
 QQ 腾讯服务器
-    ↕  (QQ 协议)
-OneBot 实现 (NapCat / Lagrange / OpenShamrock / ...)
-    ↕  (OneBot v11 WebSocket)
-qq-bot-framework (NoneBot2)
-    ├── FastAPI 管理后台 (端口 8000)
-    │   ├── REST API
-    │   ├── Web 配置中心 UI
-    │   └── 健康检查
-    │
-    ├── 插件层 (Plugins)
-    │   ├── AI 问答 (RAG)
-    │   ├── 反垃圾
-    │   └── 数据分析
-    │
-    ├── 服务层 (Services)
-    │   ├── LLM 服务 (多模型适配)
-    │   ├── 知识库服务 (BM25 索引)
-    │   ├── 反垃圾服务 (规则引擎)
-    │   ├── 对话管理
-    │   └── 动作执行
-    │
-    ├── 数据层 (Database)
-    │   ├── SQLAlchemy ORM
-    │   ├── SQLite (默认)
-    │   └── 可扩展至 MySQL/PostgreSQL
-    │
-    └── 适配器层 (Adapters)
-        └── LLM API (兼容 OpenAI 格式)
+    ↓ (QQ 协议)
+OneBot v11 实现（NapCat / Lagrange / OpenShamrock 等）
+    ↓ (WebSocket)
+本框架 (NoneBot2)
+    ├── FastAPI 后台 ─── REST API + Web UI
+    ├── 插件系统 ────── AI问答 / 反垃圾 / 数据分析
+    ├── 服务层 ──────── LLM / 知识库 / 对话 / 规则引擎
+    └── 数据层 ──────── SQLite (默认) / MySQL / PostgreSQL
 ```
 
-### 核心设计原则
-
-- **配置与代码分离**：所有配置通过 `.env` 文件管理，零硬编码
-- **插件化架构**：功能以 NoneBot2 插件形式组织，按需启用
-- **服务层抽象**：业务逻辑封装在 Service 层，便于单元测试和复用
-- **适配器模式**：LLM 接入采用适配器模式，支持任意兼容 OpenAI API 的模型
-
-## 核心功能
+## 功能一览
 
 | 功能 | 说明 |
 |------|------|
-| **AI 问答 (RAG)** | @机器人 提问，自动从知识库检索后回答。支持对话历史上下文 |
-| **智能反垃圾** | 规则引擎 + 风险评分 + LLM 二次确认。支持撤回、禁言、踢人 |
-| **知识库管理** | 支持 Markdown/纯文本，BM25 全文索引，定时自动重载 |
-| **对话管理** | 自动记录对话历史，支持 `/clear` 清除，按用户/群隔离 |
-| **Web 配置中心** | 可视化配置管理，实时修改 API Key、模型参数、阈值等 |
-| **用量统计** | 自动记录 LLM 调用次数、Token 消耗、延迟等 |
-| **数据分析** | 支持 CSV/Excel/JSON 上传，AI 驱动的数据分析 |
-| **图片 OCR** | 支持图片消息 OCR 识别（需 OneBot 实现支持） |
-| **限流保护** | 基于滑动窗口的异步限流，防止滥用 |
-| **Docker 部署** | 支持 Docker Compose 一键部署 |
+| 🤖 **AI 问答** | `@机器人 问题` 触发，知识库 RAG 检索 + 对话历史 |
+| 🛡️ **智能反垃圾** | 关键词/重复/引流/广告 规则 + LLM 二次确认，自动撤回/禁言/踢人 |
+| 📚 **知识库** | 丢 `.md` 文件进 `data/knowledge/` 即可，BM25 索引，凌晨自动重载 |
+| 📊 **数据分析** | `/analyze 文件.csv 问题` 上传 CSV/Excel/JSON 自动分析 |
+| 🌐 **Web 管理** | `http://localhost:8000` 可视化配置中心 |
+| 📈 **用量统计** | 自动记录 LLM 调用、Token 消耗、延迟 |
+| ⏱️ **限流保护** | 滑动窗口异步限流，防止滥用 |
+| 🐳 **Docker 部署** | 一行 `docker-compose up -d` 启动 |
 
-## 支持的 AI 模型
+## 一、快速上手
 
-本框架通过适配器模式接入 LLM，**所有兼容 OpenAI Chat Completions API 的模型服务均可接入**：
-
-### 已验证支持的模型/服务
-
-| 服务商 | 模型示例 | API Base URL |
-|--------|---------|-------------|
-| **OpenAI** | gpt-4o, gpt-4o-mini, o1-preview | `https://api.openai.com/v1` |
-| **DeepSeek** | deepseek-chat, deepseek-coder | `https://api.deepseek.com/v1` |
-| **Anthropic** | claude-3-5-sonnet, claude-3-opus | `https://api.anthropic.com/v1` |
-| **Google** | gemini-1.5-pro, gemini-2.0-flash | `https://generativelanguage.googleapis.com/v1beta/openai` |
-| **通义千问** | qwen-turbo, qwen-plus, qwen-max | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| **智谱 AI** | glm-4, glm-4-flash | `https://open.bigmodel.cn/api/paas/v4` |
-| **Moonshot** | moonshot-v1-8k, moonshot-v1-32k | `https://api.moonshot.cn/v1` |
-| **OpenRouter** | 多模型聚合 | `https://openrouter.ai/api/v1` |
-| **本地部署** | Ollama, vLLM, LocalAI 等 | 自定义地址 |
-
-### 接入方式
-
-#### 1. 通过 .env 文件配置
-
-```env
-# LLM 配置
-LLM_API_BASE=https://api.openai.com/v1
-LLM_API_KEY=sk-your-api-key
-LLM_MODEL=gpt-4o-mini
-LLM_TEMPERATURE=0.7
-LLM_MAX_TOKENS=2048
-```
-
-#### 2. 通过 Web 配置中心
-
-启动后访问 `http://localhost:8000`，在 "LLM 配置" 标签页中修改。
-
-#### 3. 通过 API 动态修改
-
-```bash
-curl -X PUT http://localhost:8000/api/config \
-  -H "Content-Type: application/json" \
-  -d '{"LLM_API_KEY":"sk-new-key","LLM_MODEL":"gpt-4o"}'
-```
-
-### 切换模型示例
-
-**切换到 DeepSeek：**
-```env
-LLM_API_BASE=https://api.deepseek.com/v1
-LLM_API_KEY=sk-deepseek-key
-LLM_MODEL=deepseek-chat
-```
-
-**切换到通义千问：**
-```env
-LLM_API_BASE=https://dashscope.aliyuncs.com/compatible-mode/v1
-LLM_API_KEY=sk-dashscope-key
-LLM_MODEL=qwen-turbo
-```
-
-**切换到本地 Ollama：**
-```env
-LLM_API_BASE=http://localhost:11434/v1
-LLM_API_KEY=ollama
-LLM_MODEL=llama3
-```
-
-## 快速开始
-
-### 1. 前置要求
+### 1. 前置准备
 
 - Python 3.11+
-- OneBot v11 兼容实现 (NapCat / Lagrange.OneBot / OpenShamrock 等)
-- 一个 QQ 机器人账号
+- 一个 QQ 机器人账号（小号即可）
+- 一个 [OneBot v11 兼容实现](https://onebot.dev/ecosystem.html)（见下方推荐）
 
 ### 2. 安装
 
@@ -140,8 +47,8 @@ LLM_MODEL=llama3
 git clone https://github.com/your-username/qq-bot-framework.git
 cd qq-bot-framework
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或 venv\Scripts\activate  # Windows
+source venv/bin/activate          # Linux/Mac
+# 或 venv\Scripts\activate       # Windows
 pip install -e ".[dev]"
 ```
 
@@ -149,82 +56,273 @@ pip install -e ".[dev]"
 
 ```bash
 cp .env.example .env
-vim .env  # 填入你的 LLM_API_KEY 和其他配置
+vim .env                          # 编辑配置
+```
+
+至少修改以下三项：
+
+```env
+# ─── LLM 配置（填入你的 API Key） ───
+LLM_API_BASE=https://api.openai.com/v1
+LLM_API_KEY=sk-xxxxxxxxxxxxxxxx
+LLM_MODEL=gpt-4o-mini
+
+# ─── OneBot 连接 ───
+ONEBOT_ACCESS_TOKEN=              # 如果 OneBot 端设置了 Token，请填写
 ```
 
 ### 4. 启动
 
 ```bash
+# 先启动你的 OneBot 实现（如 NapCat），再启动框架
 python bot.py
+```
+
+看到以下输出说明启动成功：
+
+```
+INFO:     Running on http://0.0.0.0:8000
+INFO:     OneBot V11 | Bot connected
 ```
 
 ### 5. Docker 部署
 
 ```bash
+# docker-compose.yml 已包含 OneBot + 框架的组合
+# 请根据你使用的 OneBot 实现修改 docker-compose.yml 中的镜像
 docker-compose up -d --build
 ```
 
-## 目录结构
+## 二、配置说明
+
+所有配置在 `.env` 文件中，修改后重启生效。
+
+### LLM 配置
+
+```env
+LLM_API_BASE=https://api.openai.com/v1    # API 地址（见下方支持列表）
+LLM_API_KEY=sk-你的Key                     # API 密钥
+LLM_MODEL=gpt-4o-mini                     # 模型名称
+LLM_TEMPERATURE=0.7                       # 温度（0~2，越低越确定）
+LLM_MAX_TOKENS=2048                        # 单次最大输出 Token
+```
+
+### OneBot 连接配置
+
+支持两种 WebSocket 模式：
+
+**正向 WS**（框架主动连接 OneBot）：
+
+```env
+# 在 .env 中取消注释
+ONEBOT_WS_URLS=["ws://127.0.0.1:3001"]
+```
+
+**反向 WS**（OneBot 主动连接框架，推荐）：
+
+无需在 `.env` 中配置。只需在 OneBot 端设置反向 WS URL：
+
+```
+ws://<框架IP>:8080/onebot/v11/ws
+```
+
+### 反垃圾阈值
+
+```env
+ANTISPAM_THRESHOLD_LLM=40     # 达到此分数触发 LLM 二次确认
+ANTISPAM_THRESHOLD_BAN=70     # 达到此分数自动禁言
+ANTISPAM_THRESHOLD_KICK=90    # 达到此分数自动踢人
+```
+
+## 三、支持的 LLM 服务
+
+框架通过适配器模式接入 LLM。**所有兼容 OpenAI Chat Completions API 的服务均可直接接入**，无需修改代码。
+
+| 服务商 | 模型示例 | `LLM_API_BASE` |
+|--------|---------|----------------|
+| **OpenAI** | gpt-4o, gpt-4o-mini | `https://api.openai.com/v1` |
+| **DeepSeek** | deepseek-chat | `https://api.deepseek.com/v1` |
+| **Anthropic** | claude-3-5-sonnet | `https://api.anthropic.com/v1` |
+| **Google** | gemini-1.5-pro | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| **通义千问** | qwen-turbo | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| **智谱 AI** | glm-4-flash | `https://open.bigmodel.cn/api/paas/v4` |
+| **Moonshot** | moonshot-v1-8k | `https://api.moonshot.cn/v1` |
+| **OpenRouter** | 多模型聚合 | `https://openrouter.ai/api/v1` |
+| **本地部署** | Ollama / vLLM 等 | `http://localhost:11434/v1` |
+
+切换模型只需改 `.env` 中的 `LLM_MODEL` 和 `LLM_API_BASE`。
+
+## 四、OneBot 实现推荐
+
+OneBot 是连接 QQ 和本框架的协议桥。请选择以下任一实现：
+
+| 实现 | 说明 | 适用场景 |
+|------|------|---------|
+| **NapCat** | 基于 NTQQ，功能丰富 | 推荐，大多数场景 |
+| **Lagrange.Core** | 跨平台，支持 Linux/Mac/Windows | 多平台部署 |
+| **OpenShamrock** | 轻量级，易于配置 | 简单场景 |
+| **LiteLoaderQQNT + llonebot** | 基于插件生态 | 已有 LL 环境 |
+
+### NapCat 部署参考
+
+NapCat 是一个开源的 OneBot v11 实现。
+
+> ⚠️ 本项目与 NapCat 无隶属关系。NapCat 是社区开源项目，请遵守其 [使用协议](https://github.com/NapNeko/NapCatQQ)。
+
+#### 方式一：Docker（推荐）
+
+```bash
+docker run -d \
+  --name napcat \
+  -e ACCOUNT=你的QQ号 \
+  -e WS_URL=ws://宿主机IP:8080 \
+  -p 6099:6099 \
+  mlikiowa/napcat-docker:latest
+```
+
+#### 方式二：Windows 桌面版
+
+1. 从 [NapCatQQ Releases](https://github.com/NapNeko/NapCatQQ/releases) 下载
+2. 安装 VC++ 运行库（如遇 DLL 缺失）
+3. 运行 → 扫码登录
+4. 在 WebUI (`http://127.0.0.1:6099`) → OneBot11 → 网络设置 → 添加反向 WebSocket
+   - URL：`ws://127.0.0.1:8080`
+   - Access Token：留空（或填写你在 `.env` 中设置的值）
+
+## 五、插件开发
+
+框架基于 NoneBot2 插件系统。要添加新功能：
+
+### 1. 创建插件目录
+
+```bash
+mkdir -p plugins/my_plugin
+touch plugins/my_plugin/__init__.py
+```
+
+### 2. 编写插件
+
+```python
+# plugins/my_plugin/__init__.py
+from nonebot import on_command
+from nonebot.adapters.onebot.v11 import Event, Message
+
+my_cmd = on_command("hello")
+
+@my_cmd.handle()
+async def handle_hello(event: Event):
+    await my_cmd.send("Hello from my plugin!")
+```
+
+### 3. 插件结构参考
+
+```
+plugins/
+└── my_plugin/
+    ├── __init__.py      # 插件入口（响应器注册）
+    └── config.py        # 可选：插件专属配置
+```
+
+### 4. 获取 LLM 回复
+
+```python
+from services import get_llm_service
+
+llm = get_llm_service()
+reply = await llm.ask([
+    {"role": "system", "content": "你是群助手"},
+    {"role": "user", "content": "你好"}
+])
+```
+
+### 5. 更多插件开发文档
+
+- [NoneBot2 官方文档](https://nonebot.dev/)
+- [OneBot v11 协议文档](https://1onebot.dev/)
+
+## 六、项目结构
 
 ```
 qq-bot/
-├── bot.py                  # NoneBot2 入口（挂载 FastAPI）
-├── app.py                  # FastAPI 应用实例
-├── .env                    # 配置（API Key、模型、WS 地址）
-├── pyproject.toml          # 项目配置
-├── adapters/               # 第三方 API 适配器
-│   └── llm_adapter.py      # LLM API 适配器 (兼容 OpenAI 格式)
+├── bot.py                  # 启动入口
+├── app.py                  # FastAPI 应用
+├── .env                    # 配置文件
+├── pyproject.toml          # 依赖与构建
+├── adapters/               # API 适配器
+│   └── llm_adapter.py      # LLM 适配器（兼容 OpenAI 格式）
 ├── config/
-│   └── settings.py         # 统一配置管理 (Pydantic Settings)
+│   └── settings.py         # 配置管理（Pydantic Settings）
 ├── core/                   # 基础设施
-│   ├── logger.py           # 日志 (Loguru)
+│   ├── logger.py           # 日志
 │   ├── cache.py            # 缓存
 │   └── exceptions.py       # 自定义异常
 ├── database/               # 数据库
-│   ├── base.py             # SQLAlchemy 引擎 + 会话
+│   ├── base.py             # SQLAlchemy
 │   └── models.py           # ORM 模型
-├── models/                 # Pydantic 模型 (API 请求/响应)
-├── plugins/                # NoneBot2 插件 (业务功能)
-│   ├── ai_qa/              # AI 问答插件
-│   └── anti_spam/          # 反垃圾插件
-├── routers/                # FastAPI 路由
-│   ├── config.py           # 配置管理 API
-│   ├── knowledge.py        # 知识库 API
-│   ├── llm.py              # LLM 用量 API
-│   └── dashboard.py        # 仪表盘 API
-├── services/               # 业务逻辑层
-│   ├── llm_service.py      # LLM 服务
-│   ├── knowledge_service.py # 知识库服务
-│   ├── anti_spam_service.py # 反垃圾服务
-│   ├── action_service.py   # 动作执行服务
+├── models/                 # Pydantic 数据模型
+├── plugins/                # 业务插件
+│   ├── ai_qa/              # AI 问答（@机器人 提问）
+│   ├── anti_spam/          # 反垃圾（规则+LLM）
+│   └── analysis/           # 数据分析（/analyze 命令）
+├── routers/                # API 路由
+├── services/               # 业务逻辑
+│   ├── llm_service.py      # LLM 统一服务
+│   ├── knowledge_service.py # 知识库
+│   ├── anti_spam_service.py # 反垃圾引擎
+│   ├── action_service.py   # 动作执行
 │   ├── conversation_service.py # 对话管理
-│   ├── prompt_builder.py   # Prompt 构造器
+│   ├── prompt_builder.py   # Prompt 构造
 │   └── analysis/           # 数据分析模块
-├── static/config/          # Web 配置中心 UI
+├── static/config/          # Web 配置 UI
 ├── data/
-│   ├── knowledge/          # 知识库文件 (.md)
+│   ├── knowledge/          # 知识库文件（.md）
 │   └── analysis/           # 数据文件
-└── scripts/                # 部署脚本
+├── scripts/                # 部署脚本
+├── tests/                  # 单元测试
+└── utils/                  # 工具函数
 ```
 
-## 反垃圾阈值
+## 七、Web 管理界面
 
-| 风险分 | 动作 |
-|--------|------|
-| < 40 | 记录日志 |
-| 40~50 | LLM 二次确认 |
-| ≥ 50 | 撤回 |
-| ≥ 70 | 撤回 + 禁言 |
-| ≥ 90 | 踢出群聊 |
+启动后访问 `http://localhost:8000` 打开配置中心：
 
-## 常用命令
+- 🧠 **LLM 配置** — 修改 API Key、模型、参数
+- 📡 **机器人** — OneBot 连接设置
+- 🛡️ **反垃圾** — 阈值调整
+- 📚 **知识库** — 分块参数
+- ⚙️ **高级** — 数据库、日志、调试模式
 
-```bash
-pip install -e ".[dev]"   # 装依赖
-python bot.py             # 启动
-docker-compose up -d      # 或走 Docker
-```
+所有修改实时保存到 `.env`，无需手动编辑。
 
-## 许可证
+## 八、命令一览
 
-MIT
+| 命令 | 说明 |
+|------|------|
+| `@机器人 问题` | 直接对话（最常用） |
+| `/ask 问题` | 命令式提问 |
+| `/clear` | 清除当前对话历史 |
+| `/analyze 文件.csv 问题` | 数据分析 |
+| `/health` | API 健康检查 |
+
+## 九、常见问题
+
+**Q: 启动后 OneBot 连不上？**
+A: 检查 OneBot 端是否已登录、WebSocket URL 是否正确、端口是否开放。
+
+**Q: 机器人不回复？**
+A: 确认 LLM_API_KEY 正确、API Base URL 可访问、OneBot 反向 WS 已配置。
+
+**Q: 知识库不生效？**
+A: 确认文件在 `data/knowledge/` 目录，格式为 `.md` 或 `.txt`。
+
+## 十、许可证
+
+MIT License
+
+## 致谢
+
+- [NoneBot2](https://github.com/nonebot/nonebot2) — Python 异步机器人框架
+- [OneBot](https://onebot.dev/) — 聊天机器人应用接口标准
+- [NapCatQQ](https://github.com/NapNeko/NapCatQQ) — OneBot 实现之一
+- [Lagrange.Core](https://github.com/LagrangeDev/Lagrange.Core) — OneBot 实现之一
+- 以及所有兼容 OneBot v11 的开源实现
