@@ -42,9 +42,9 @@ def create_app() -> FastAPI:
         FastAPI 实例.
     """
     app = FastAPI(
-        title="AI 管家 QQ 机器人",
-        description="基于 NoneBot2 + OneBot v11 + LongCat 2.0 的智能 QQ 群机器人",
-        version="0.1.0",
+        title="QQ Bot Framework",
+        description="基于 NoneBot2 + OneBot v11 的可扩展 QQ 群机器人框架",
+        version="1.0.0",
         lifespan=lifespan,
     )
 
@@ -67,8 +67,8 @@ def create_app() -> FastAPI:
         if index_file.exists():
             return FileResponse(str(index_file))
         return JSONResponse({
-            "name": "AI 管家 QQ 机器人",
-            "version": "0.1.0",
+            "name": "QQ Bot Framework",
+            "version": "1.0.0",
             "docs": "/docs",
             "api": "/api",
             "ui": "/static/config/index.html",

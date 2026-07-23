@@ -18,7 +18,6 @@ class TestKnowledgeIntegration:
     @pytest.mark.asyncio
     async def test_full_rag_pipeline(self):
         """完整 RAG 流水线."""
-        # 1. 创建知识库
         items = [
             KnowledgeItem(content="Python 是一种编程语言，由 Guido van Rossum 创建。", source="py.md", chunk_index=0),
             KnowledgeItem(content="Python 具有简洁、易读的语法特点。", source="py.md", chunk_index=1),
@@ -26,17 +25,14 @@ class TestKnowledgeIntegration:
             KnowledgeItem(content="Java 具有跨平台、安全性高的特点。", source="java.md", chunk_index=1),
         ]
 
-        # 2. 构建索引
         indexer = KnowledgeIndexer()
         indexer.build(items)
         assert indexer.size == 4
 
-        # 3. 搜索
         results = indexer.search("Python 语言", top_k=2)
         assert len(results) > 0
         assert any("Python" in r["content"] for r in results)
 
-        # 4. 搜索 Java
         results = indexer.search("Java 编程", top_k=2)
         assert any("Java" in r["content"] for r in results)
 
@@ -51,7 +47,6 @@ class TestAntiSpamIntegration:
 
         rules = get_default_rules()
 
-        # 正常消息
         normal_msg = "大家好，今天天气不错"
         hits = []
         for rule in rules:
@@ -61,7 +56,6 @@ class TestAntiSpamIntegration:
 
         assert len(hits) == 0
 
-        # 垃圾消息
         spam_msg = "刷单日赚500，加微信 abc123，点击 http://spam.com，电话 13812345678"
         hits = []
         for rule in rules:
@@ -69,7 +63,6 @@ class TestAntiSpamIntegration:
             if result.hit:
                 hits.append(result)
 
-        # 至少命中多个规则
         assert len(hits) >= 3
         total_score = sum(h["score"] for h in hits)
         assert total_score >= 40
@@ -84,9 +77,9 @@ class TestLLMServiceIntegration:
         from services.llm_service import LLMService
         from unittest.mock import AsyncMock
 
-        from adapters.longcat_adapter import LongCatAdapter
+        from adapters.llm_adapter import LLMAdapter
 
-        mock_adapter = AsyncMock(spec=LongCatAdapter)
+        mock_adapter = AsyncMock(spec=LLMAdapter)
         mock_adapter.chat.return_value = {
             "choices": [{"message": {"content": "这是 AI 的回复。"}}],
             "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
@@ -108,17 +101,14 @@ class TestPromptIntegration:
         from services.prompt_builder import (
             build_ai_qa_prompt,
             build_antispam_prompt,
-            build_meituan_prompt,
+            build_analysis_prompt,
         )
 
-        # AI QA
         msgs = build_ai_qa_prompt("问题", ["知识1"], [{"role": "user", "content": "历史"}])
         assert len(msgs) >= 2
 
-        # AntiSpam
         msgs = build_antispam_prompt("消息", [{"rule_name": "规则1", "score": 30}])
         assert len(msgs) == 2
 
-        # Meituan
-        msgs = build_meituan_prompt("问题", "数据摘要")
+        msgs = build_analysis_prompt("问题", "数据摘要")
         assert len(msgs) == 2

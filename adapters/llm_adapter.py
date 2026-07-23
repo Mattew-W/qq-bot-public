@@ -1,7 +1,7 @@
-"""LongCat API 适配器.
+"""LLM API 适配器.
 
 封装 HTTP 调用细节，统一错误处理。
-LongCat 兼容 OpenAI Chat Completions 接口。
+兼容 OpenAI Chat Completions 接口（OpenAI / DeepSeek / Claude / Gemini / 通义千问 / 智谱 / Moonshot 等均可接入）。
 """
 
 from __future__ import annotations
@@ -17,20 +17,21 @@ from core.exceptions import LLMException
 from core.logger import get_logger
 from utils.decorators import retry
 
-logger = get_logger("adapter.longcat")
+logger = get_logger("adapter.llm")
 
 
-class LongCatAdapter:
-    """LongCat API 适配器.
+class LLMAdapter:
+    """LLM API 适配器.
 
     封装 HTTP 调用细节，统一错误处理。
+    兼容 OpenAI Chat Completions 接口。
     """
 
     def __init__(self) -> None:
         settings = get_settings()
-        self._base_url = settings.LONGCAT_API_BASE.rstrip("/")
-        self._api_key = settings.LONGCAT_API_KEY
-        self._model = settings.LONGCAT_MODEL
+        self._base_url = settings.LLM_API_BASE.rstrip("/")
+        self._api_key = settings.LLM_API_KEY
+        self._model = settings.LLM_MODEL
         self._timeout = httpx.Timeout(
             connect=10.0,
             read=60.0,
@@ -58,7 +59,7 @@ class LongCatAdapter:
         stream: bool = False,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        """调用 LongCat Chat API.
+        """调用 Chat API.
 
         Args:
             messages: 消息列表.
@@ -109,16 +110,16 @@ class LongCatAdapter:
         except httpx.HTTPStatusError as e:
             elapsed = (time.monotonic() - start_time) * 1000
             error_body = e.response.text if e.response is not None else "unknown"
-            logger.error(f"LongCat API HTTP 错误: {e.response.status_code if e.response else '?'} body={error_body} latency={elapsed:.0f}ms")
+            logger.error(f"LLM API HTTP 错误: {e.response.status_code if e.response else '?'} body={error_body} latency={elapsed:.0f}ms")
             raise LLMException(
-                f"LongCat API HTTP {e.response.status_code if e.response else '?'} 错误",
+                f"LLM API HTTP {e.response.status_code if e.response else '?'} 错误",
                 details={"status_code": e.response.status_code if e.response else None, "body": error_body},
             ) from e
         except httpx.HTTPError as e:
             elapsed = (time.monotonic() - start_time) * 1000
-            logger.error(f"LongCat API 网络错误: {type(e).__name__}: {e} latency={elapsed:.0f}ms")
+            logger.error(f"LLM API 网络错误: {type(e).__name__}: {e} latency={elapsed:.0f}ms")
             raise LLMException(
-                f"LongCat API 网络错误: {type(e).__name__}",
+                f"LLM API 网络错误: {type(e).__name__}",
                 details={"error": str(e)},
             ) from e
 
@@ -178,19 +179,19 @@ class LongCatAdapter:
                                 continue
 
         except httpx.HTTPError as e:
-            logger.error(f"LongCat 流式错误: {type(e).__name__}: {e}")
+            logger.error(f"LLM 流式错误: {type(e).__name__}: {e}")
             raise LLMException(
-                f"LongCat 流式调用失败: {type(e).__name__}",
+                f"LLM 流式调用失败: {type(e).__name__}",
                 details={"error": str(e)},
             ) from e
 
 
-_longcat_adapter: LongCatAdapter | None = None
+_llm_adapter: LLMAdapter | None = None
 
 
-def get_longcat_adapter() -> LongCatAdapter:
-    """获取 LongCat 适配器实例."""
-    global _longcat_adapter
-    if _longcat_adapter is None:
-        _longcat_adapter = LongCatAdapter()
-    return _longcat_adapter
+def get_llm_adapter() -> LLMAdapter:
+    """获取 LLM 适配器实例."""
+    global _llm_adapter
+    if _llm_adapter is None:
+        _llm_adapter = LLMAdapter()
+    return _llm_adapter

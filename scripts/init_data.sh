@@ -2,13 +2,13 @@
 # 初始化数据目录
 
 mkdir -p data/knowledge
-mkdir -p data/meituan
+mkdir -p data/analysis
 mkdir -p data/rules
 mkdir -p logs
 
 # 创建示例知识库文件
 cat data/knowledge/welcome.md << 'EOF'
-# 欢迎使用 AI 管家
+# 欢迎使用 QQ Bot Framework
 
 ## 功能介绍
 
@@ -23,7 +23,7 @@ cat data/knowledge/welcome.md << 'EOF'
 - 自动处理违规用户
 
 ### 3. 数据分析
-- 使用 /meituan 命令分析数据
+- 使用 /analyze 命令分析数据
 - 支持 CSV/Excel/JSON 格式
 - AI 驱动的智能分析
 

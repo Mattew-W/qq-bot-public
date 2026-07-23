@@ -7,7 +7,7 @@ from typing import Any
 
 from core.logger import get_logger
 
-logger = get_logger("meituan.cleaner")
+logger = get_logger("analysis.cleaner")
 
 
 class DataCleaner:
@@ -18,14 +18,7 @@ class DataCleaner:
 
     @staticmethod
     def clean(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """清洗数据记录.
-
-        Args:
-            records: 原始记录.
-
-        Returns:
-            清洗后的记录.
-        """
+        """清洗数据记录."""
         if not records:
             return []
 
@@ -33,18 +26,14 @@ class DataCleaner:
         for record in records:
             cleaned_record = {}
             for key, value in record.items():
-                # 清洗键名
                 clean_key = DataCleaner._clean_key(key)
-                # 清洗值
                 clean_value = DataCleaner._clean_value(value)
                 cleaned_record[clean_key] = clean_value
             cleaned.append(cleaned_record)
 
-        # 去除完全重复的记录
         unique = []
         seen = set()
         for record in cleaned:
-            # 用 frozenset 做 hashable 的表示
             try:
                 record_hash = hash(frozenset(
                     (k, str(v)) for k, v in record.items()
@@ -61,7 +50,6 @@ class DataCleaner:
     @staticmethod
     def _clean_key(key: str) -> str:
         """清洗键名."""
-        # 去除空格、转小写
         key = str(key).strip()
         key = re.sub(r"\s+", "_", key)
         key = re.sub(r"[^\w\u4e00-\u9fff]", "", key)
@@ -75,16 +63,12 @@ class DataCleaner:
 
         if isinstance(value, str):
             value = value.strip()
-            # 尝试转换为数字
             if value == "":
                 return None
-            # 去除千分位逗号
             if "," in value and value.replace(",", "").replace(".", "").isdigit():
                 value = value.replace(",", "")
-            # 尝试转 float
             try:
                 num = float(value)
-                # 如果是整数则返回 int
                 if num == int(num):
                     return int(num)
                 return num
@@ -97,18 +81,10 @@ class DataCleaner:
 
     @staticmethod
     def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
-        """生成数据摘要.
-
-        Args:
-            records: 数据记录.
-
-        Returns:
-            数据摘要.
-        """
+        """生成数据摘要."""
         if not records:
             return {"total_records": 0, "field_count": 0, "fields": {}}
 
-        # 收集所有字段
         all_fields: dict[str, dict[str, Any]] = {}
         for record in records:
             for key, value in record.items():
@@ -124,7 +100,6 @@ class DataCleaner:
                     if len(all_fields[key]["sample_values"]) < 5:
                         all_fields[key]["sample_values"].append(value)
 
-        # 格式化
         fields_summary = {}
         for key, info in all_fields.items():
             fields_summary[key] = {

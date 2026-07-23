@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
-from adapters.longcat_adapter import LongCatAdapter
+from adapters.llm_adapter import LLMAdapter
 from core.exceptions import LLMException
 from services.llm_service import LLMService
 
@@ -20,7 +20,7 @@ class TestLLMService:
     @pytest.fixture
     def mock_adapter(self):
         """创建 mock 适配器."""
-        adapter = AsyncMock(spec=LongCatAdapter)
+        adapter = AsyncMock(spec=LLMAdapter)
         adapter.chat.return_value = {
             "choices": [
                 {"message": {"content": "你好，我是 AI 助手。"}}

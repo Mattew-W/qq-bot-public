@@ -26,20 +26,19 @@ class Settings(BaseSettings):
     BOT_APP_ID: str = ""
     BOT_SECRET: str = ""
     BOT_TOKEN: str = ""
-    # 机器人在群里的显示名（@xxx 触发用）。留空则自动从 QQ 接口获取。
-    # 当 NapCat 以纯文本 '@昵称' 上报 @（无 CQ 码）时必须能匹配到此名。
+    # 机器人在群里的显示名（@xxx 触发用）。留空则自动从 OneBot 接口获取。
     BOT_NICKNAME: str = ""
 
     # === OneBot 适配器配置 ===
     ONEBOT_WS_URL: str = "ws://127.0.0.1:8080"
     ONEBOT_ACCESS_TOKEN: str = ""
 
-    # === LongCat LLM 配置 ===
-    LONGCAT_API_BASE: str = "https://api.longcat.ai/v1"
-    LONGCAT_API_KEY: str = ""
-    LONGCAT_MODEL: str = "longcat-chat"
-    LONGCAT_TEMPERATURE: float = 0.7
-    LONGCAT_MAX_TOKENS: int = 2048
+    # === LLM 配置 ===
+    LLM_API_BASE: str = "https://api.openai.com/v1"
+    LLM_API_KEY: str = ""
+    LLM_MODEL: str = "gpt-4o-mini"
+    LLM_TEMPERATURE: float = 0.7
+    LLM_MAX_TOKENS: int = 2048
 
     # === 数据库配置 ===
     DATABASE_URL: str = "sqlite:///./data/qqbot.db"
@@ -60,16 +59,16 @@ class Settings(BaseSettings):
     ANTISPAM_THRESHOLD_WITHDRAW: int = 50
     ANTISPAM_THRESHOLD_BAN: int = 70
     ANTISPAM_THRESHOLD_KICK: int = 90
-    # 是否跳过管理员/群主消息不做反垃圾检查。生产环境建议 True；想自己拿管理员号测试撤回可设 False。
+    # 是否跳过管理员/群主消息不做反垃圾检查。
     ANTISPAM_SKIP_ADMIN: bool = True
 
-    # === 美团分析配置 ===
-    MEITUAN_DATA_DIR: str = "./data/meituan"
+    # === 数据分析配置 ===
+    DATA_ANALYSIS_DIR: str = "./data/analysis"
 
     # === 调试模式 ===
     DEBUG: bool = False
 
-    @field_validator("LONGCAT_TEMPERATURE")
+    @field_validator("LLM_TEMPERATURE")
     @classmethod
     def validate_temperature(cls, v: float) -> float:
         """验证温度参数."""
@@ -77,7 +76,7 @@ class Settings(BaseSettings):
             raise ValueError("temperature 必须在 0.0 ~ 2.0 之间")
         return v
 
-    @field_validator("LONGCAT_MAX_TOKENS")
+    @field_validator("LLM_MAX_TOKENS")
     @classmethod
     def validate_max_tokens(cls, v: int) -> int:
         """验证最大 token 数."""

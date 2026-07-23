@@ -18,13 +18,13 @@ router = APIRouter()
 _ALLOWED_KEYS = {
     "BOT_APP_ID", "BOT_SECRET", "BOT_TOKEN",
     "ONEBOT_WS_URL", "ONEBOT_ACCESS_TOKEN",
-    "LONGCAT_API_BASE", "LONGCAT_API_KEY", "LONGCAT_MODEL",
-    "LONGCAT_TEMPERATURE", "LONGCAT_MAX_TOKENS",
+    "LLM_API_BASE", "LLM_API_KEY", "LLM_MODEL",
+    "LLM_TEMPERATURE", "LLM_MAX_TOKENS",
     "DATABASE_URL", "LOG_LEVEL", "LOG_DIR", "LOG_RETENTION",
     "KNOWLEDGE_DIR", "KNOWLEDGE_CHUNK_SIZE", "KNOWLEDGE_CHUNK_OVERLAP",
     "ANTISPAM_RULES_DIR", "ANTISPAM_THRESHOLD_LLM",
     "ANTISPAM_THRESHOLD_BAN", "ANTISPAM_THRESHOLD_KICK",
-    "MEITUAN_DATA_DIR", "DEBUG",
+    "DATA_ANALYSIS_DIR", "DEBUG",
 }
 
 
@@ -61,11 +61,11 @@ async def get_config():
         "BOT_TOKEN": _mask(settings.BOT_TOKEN),
         "ONEBOT_WS_URL": settings.ONEBOT_WS_URL,
         "ONEBOT_ACCESS_TOKEN": _mask(settings.ONEBOT_ACCESS_TOKEN),
-        "LONGCAT_API_BASE": settings.LONGCAT_API_BASE,
-        "LONGCAT_API_KEY": _mask(settings.LONGCAT_API_KEY),
-        "LONGCAT_MODEL": settings.LONGCAT_MODEL,
-        "LONGCAT_TEMPERATURE": settings.LONGCAT_TEMPERATURE,
-        "LONGCAT_MAX_TOKENS": settings.LONGCAT_MAX_TOKENS,
+        "LLM_API_BASE": settings.LLM_API_BASE,
+        "LLM_API_KEY": _mask(settings.LLM_API_KEY),
+        "LLM_MODEL": settings.LLM_MODEL,
+        "LLM_TEMPERATURE": settings.LLM_TEMPERATURE,
+        "LLM_MAX_TOKENS": settings.LLM_MAX_TOKENS,
         "DATABASE_URL": _mask(settings.DATABASE_URL) if "://" in settings.DATABASE_URL and "@" in settings.DATABASE_URL else settings.DATABASE_URL,
         "LOG_LEVEL": settings.LOG_LEVEL,
         "LOG_DIR": settings.LOG_DIR,
@@ -77,7 +77,7 @@ async def get_config():
         "ANTISPAM_THRESHOLD_LLM": settings.ANTISPAM_THRESHOLD_LLM,
         "ANTISPAM_THRESHOLD_BAN": settings.ANTISPAM_THRESHOLD_BAN,
         "ANTISPAM_THRESHOLD_KICK": settings.ANTISPAM_THRESHOLD_KICK,
-        "MEITUAN_DATA_DIR": settings.MEITUAN_DATA_DIR,
+        "DATA_ANALYSIS_DIR": settings.DATA_ANALYSIS_DIR,
         "DEBUG": settings.DEBUG,
     }
     return JSONResponse({"code": 0, "message": "ok", "data": data})

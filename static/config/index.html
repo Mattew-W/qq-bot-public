@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 管家 QQ 机器人 - 配置中心</title>
+    <title>QQ Bot Framework - 配置中心</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -371,7 +371,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 AI 管家 QQ 机器人</h1>
+            <h1>🤖 QQ Bot Framework</h1>
             <p>配置中心 — 管理 API 密钥与系统参数</p>
             <div class="status-bar">
                 <div class="status-dot" id="statusDot"></div>
@@ -391,31 +391,31 @@
         <div class="panel active" id="panel-llm">
             <div class="panel-title">
                 <div class="icon">🧠</div>
-                LongCat LLM 配置
+                LLM 配置
             </div>
             <div class="form-grid">
                 <div class="form-group full-width">
                     <label>API Base URL <span class="required">*</span></label>
-                    <input type="text" id="LONGCAT_API_BASE" placeholder="https://api.longcat.ai/v1">
-                    <span class="hint">LongCat API 的基础地址</span>
+                    <input type="text" id="LLM_API_BASE" placeholder="https://api.openai.com/v1">
+                    <span class="hint">兼容 OpenAI API 格式的 LLM 服务地址</span>
                 </div>
                 <div class="form-group full-width">
                     <label>API Key <span class="required">*</span></label>
-                    <input type="password" id="LONGCAT_API_KEY" placeholder="sk-...">
-                    <span class="hint">你的 LongCat API 密钥</span>
+                    <input type="password" id="LLM_API_KEY" placeholder="sk-...">
+                    <span class="hint">你的 LLM API 密钥</span>
                 </div>
                 <div class="form-group">
                     <label>模型名称</label>
-                    <input type="text" id="LONGCAT_MODEL" placeholder="longcat-chat">
+                    <input type="text" id="LLM_MODEL" placeholder="gpt-4o-mini">
                 </div>
                 <div class="form-group">
                     <label>最大 Token 数</label>
-                    <input type="number" id="LONGCAT_MAX_TOKENS" placeholder="2048" min="1" max="128000">
+                    <input type="number" id="LLM_MAX_TOKENS" placeholder="2048" min="1" max="128000">
                 </div>
                 <div class="form-group full-width">
                     <label>Temperature (温度): <span id="tempValue">0.7</span></label>
                     <div class="slider-group">
-                        <input type="range" id="LONGCAT_TEMPERATURE" min="0" max="2" step="0.1" value="0.7">
+                        <input type="range" id="LLM_TEMPERATURE" min="0" max="2" step="0.1" value="0.7">
                     </div>
                     <span class="hint">控制回复的随机性。0 = 确定性，2 = 创造性</span>
                 </div>
@@ -444,7 +444,7 @@
                 <div class="form-group full-width">
                     <label>OneBot WebSocket URL <span class="required">*</span></label>
                     <input type="text" id="ONEBOT_WS_URL" placeholder="ws://127.0.0.1:8080">
-                    <span class="hint">NapCat / Lagrange 的 WebSocket 地址</span>
+                    <span class="hint">OneBot 实现的 WebSocket 地址</span>
                 </div>
                 <div class="form-group full-width">
                     <label>Access Token</label>
@@ -536,8 +536,8 @@
                     <input type="text" id="LOG_DIR" placeholder="./logs">
                 </div>
                 <div class="form-group full-width">
-                    <label>美团数据目录</label>
-                    <input type="text" id="MEITUAN_DATA_DIR" placeholder="./data/meituan">
+                    <label>数据分析目录</label>
+                    <input type="text" id="DATA_ANALYSIS_DIR" placeholder="./data/analysis">
                 </div>
                 <div class="form-group full-width toggle-group">
                     <span>🐛 调试模式 (DEBUG)</span>
@@ -583,7 +583,7 @@
         });
 
         // === Temperature 滑块 ===
-        const tempSlider = document.getElementById('LONGCAT_TEMPERATURE');
+        const tempSlider = document.getElementById('LLM_TEMPERATURE');
         const tempValue = document.getElementById('tempValue');
         tempSlider.addEventListener('input', () => {
             tempValue.textContent = parseFloat(tempSlider.value).toFixed(1);
@@ -647,7 +647,6 @@
                     }
                 }
             });
-            // Toggle
             const debugToggle = document.getElementById('DEBUG');
             if (debugToggle) {
                 data['DEBUG'] = debugToggle.classList.contains('on');

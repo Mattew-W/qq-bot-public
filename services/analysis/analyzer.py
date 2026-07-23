@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from config import get_settings
-from core.exceptions import MeituanException
+from core.exceptions import AnalysisException
 from core.logger import get_logger
-from services.prompt_builder import build_meituan_prompt
+from services.prompt_builder import build_analysis_prompt
 from services.llm_service import get_llm_service
-from services.meituan.data_cleaner import DataCleaner
-from services.meituan.data_loader import DataLoader
+from services.analysis.data_cleaner import DataCleaner
+from services.analysis.data_loader import DataLoader
 
-logger = get_logger("meituan.analyzer")
+logger = get_logger("analysis.analyzer")
 
 
 class DataAnalyzer:
@@ -31,26 +31,12 @@ class DataAnalyzer:
         file_path: str,
         question: str,
     ) -> str:
-        """加载文件并分析.
-
-        Args:
-            file_path: 数据文件路径.
-            question: 分析问题.
-
-        Returns:
-            分析结果.
-        """
+        """加载文件并分析."""
         try:
-            # 1. 加载数据
             records = await self._loader.load(file_path)
-
-            # 2. 清洗数据
             cleaned = self._cleaner.clean(records)
-
-            # 3. 生成摘要
             summary = self._cleaner.summarize(cleaned)
 
-            # 4. 构造 prompt
             summary_text = (
                 f"总记录数: {summary['total_records']}\n"
                 f"字段数: {summary['field_count']}\n"
@@ -60,8 +46,7 @@ class DataAnalyzer:
             for i, record in enumerate(cleaned[:5]):
                 summary_text += f"  记录{i+1}: {record}\n"
 
-            # 5. 调用 LLM
-            messages = build_meituan_prompt(
+            messages = build_analysis_prompt(
                 question=question,
                 data_summary=summary_text,
             )
@@ -69,21 +54,14 @@ class DataAnalyzer:
             reply = await self._llm.ask(messages=messages)
             return reply
 
-        except MeituanException:
+        except AnalysisException:
             raise
         except Exception as e:
             logger.error(f"分析失败: {e}")
-            raise MeituanException(f"分析失败: {e}")
+            raise AnalysisException(f"分析失败: {e}")
 
     async def quick_stats(self, file_path: str) -> dict[str, Any]:
-        """快速统计 - 不调用 LLM.
-
-        Args:
-            file_path: 数据文件路径.
-
-        Returns:
-            统计结果.
-        """
+        """快速统计 - 不调用 LLM."""
         records = await self._loader.load(file_path)
         cleaned = self._cleaner.clean(records)
         return self._cleaner.summarize(cleaned)

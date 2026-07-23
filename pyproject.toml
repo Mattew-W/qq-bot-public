@@ -1,7 +1,7 @@
 [project]
-name = "qq-bot"
-version = "0.1.0"
-description = "AI 管家 QQ 群机器人 - 基于 NoneBot2 + OneBot v11 + LongCat 2.0"
+name = "qq-bot-framework"
+version = "1.0.0"
+description = "基于 NoneBot2 + OneBot v11 的可扩展 QQ 群机器人框架"
 requires-python = ">=3.11"
 readme = "README.md"
 
@@ -44,6 +44,7 @@ packages = [
     "routers",
     "services",
     "tests",
+    "plugins/analysis",
     "utils",
 ]
 

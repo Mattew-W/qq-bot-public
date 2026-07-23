@@ -23,75 +23,32 @@ class PromptBuilder:
         self._output_format: str = ""
 
     def set_system(self, system: str) -> "PromptBuilder":
-        """设置系统提示词.
-
-        Args:
-            system: 系统提示词.
-
-        Returns:
-            self.
-        """
+        """设置系统提示词."""
         self._system = system
         return self
 
     def add_context(self, context: str) -> "PromptBuilder":
-        """添加上下文信息.
-
-        Args:
-            context: 上下文文本.
-
-        Returns:
-            self.
-        """
+        """添加上下文信息."""
         self._context.append(context)
         return self
 
     def add_history(self, role: str, content: str) -> "PromptBuilder":
-        """添加历史对话.
-
-        Args:
-            role: 角色 (user/assistant).
-            content: 内容.
-
-        Returns:
-            self.
-        """
+        """添加历史对话."""
         self._history.append({"role": role, "content": content})
         return self
 
     def set_user(self, user: str) -> "PromptBuilder":
-        """设置用户问题.
-
-        Args:
-            user: 用户输入.
-
-        Returns:
-            self.
-        """
+        """设置用户问题."""
         self._user = user
         return self
 
     def add_constraint(self, constraint: str) -> "PromptBuilder":
-        """添加约束条件.
-
-        Args:
-            constraint: 约束描述.
-
-        Returns:
-            self.
-        """
+        """添加约束条件."""
         self._constraints.append(constraint)
         return self
 
     def set_output_format(self, fmt: str) -> "PromptBuilder":
-        """设置输出格式.
-
-        Args:
-            fmt: 格式描述.
-
-        Returns:
-            self.
-        """
+        """设置输出格式."""
         self._output_format = fmt
         return self
 
@@ -103,7 +60,6 @@ class PromptBuilder:
         """
         messages: list[dict[str, str]] = []
 
-        # System prompt
         system_parts: list[str] = []
         if self._system:
             system_parts.append(self._system)
@@ -117,21 +73,15 @@ class PromptBuilder:
         if system_parts:
             messages.append({"role": "system", "content": "\n\n".join(system_parts)})
 
-        # History
         messages.extend(self._history)
 
-        # User question
         if self._user:
             messages.append({"role": "user", "content": self._user})
 
         return messages
 
     def reset(self) -> "PromptBuilder":
-        """重置构造器.
-
-        Returns:
-            self.
-        """
+        """重置构造器."""
         self._system = ""
         self._context = []
         self._history = []
@@ -143,7 +93,8 @@ class PromptBuilder:
 
 # === 预定义 Prompt 模板 ===
 
-AI_QA_SYSTEM = """你是宁波工程学院招新群里的机器人，扮演一个在校学长/学姐，给 26 届新生答疑。
+# 通用问答模板 - 可根据业务场景自定义
+AI_QA_SYSTEM = """你是 QQ 群里的智能助手，帮助群成员解答问题。
 
 ## 人设与语气
 - 话少、直接、不啰嗦，像在 QQ 上闲聊，别端着也别像客服，更别像 AI 写小作文
@@ -152,8 +103,8 @@ AI_QA_SYSTEM = """你是宁波工程学院招新群里的机器人，扮演一�
 
 ## 怎么用上下文
 - 「对话历史」是你和对方刚才聊的：遇到「那个」「它」「前面说的」这类指代，先从对话历史搞清楚指什么，再回答
-- 「上下文信息」是学校资料库，用来查具体事实（校区、宿舍、转专业等）
-- 两者都推不出来的，才说"这个我不太清楚，看录取通知书或打 0574-87616666 问下"，别编
+- 「上下文信息」是知识库，用来查具体事实
+- 两者都推不出来的，才说"这个我不太清楚"，别编
 
 ## 回答风格
 - 简洁，一般一两句话；要把事说清楚时可多说一句，但别啰嗦
@@ -174,7 +125,7 @@ ANTISPAM_SYSTEM = """你是一个反垃圾消息分析助手。你需要判断�
 - 疑似垃圾：包含联系方式、链接、广告词
 - 明确垃圾：明显的广告、诈骗、恶意内容"""
 
-MEITUAN_SYSTEM = """你是一个美团业务数据分析助手。你需要根据提供的数据回答分析问题。
+ANALYSIS_SYSTEM = """你是一个数据分析助手。你需要根据提供的数据回答分析问题。
 
 ## 分析原则
 - 基于数据说话，不编造数字
@@ -188,16 +139,7 @@ def build_ai_qa_prompt(
     knowledge: list[str] | None = None,
     history: list[dict[str, str]] | None = None,
 ) -> list[dict[str, str]]:
-    """构造 AI 问答 Prompt.
-
-    Args:
-        question: 用户问题.
-        knowledge: 知识库检索结果.
-        history: 历史对话.
-
-    Returns:
-        消息列表.
-    """
+    """构造 AI 问答 Prompt."""
     builder = PromptBuilder()
     builder.set_system(AI_QA_SYSTEM)
 
@@ -211,22 +153,14 @@ def build_ai_qa_prompt(
 
     builder.set_user(question)
     builder.add_constraint("简洁为主，一两句话，别啰嗦也别像 AI 写小作文")
-    builder.add_constraint("语气像 QQ 上闲聊的在校学长/学姐，口语、自然")
-    builder.add_constraint("先用对话历史理解指代，再用资料库查事实；都没有就说不知道，绝不编造")
+    builder.add_constraint("语气像 QQ 上闲聊的口语、自然")
+    builder.add_constraint("先用对话历史理解指代，再用知识库查事实；都没有就说不知道，绝不编造")
 
     return builder.build()
 
 
 def build_antispam_prompt(message: str, rule_hits: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """构造反垃圾确认 Prompt.
-
-    Args:
-        message: 消息内容.
-        rule_hits: 命中的规则列表.
-
-    Returns:
-        消息列表.
-    """
+    """构造反垃圾确认 Prompt."""
     builder = PromptBuilder()
     builder.set_system(ANTISPAM_SYSTEM)
 
@@ -246,18 +180,10 @@ def build_antispam_prompt(message: str, rule_hits: list[dict[str, Any]]) -> list
     return builder.build()
 
 
-def build_meituan_prompt(question: str, data_summary: str) -> list[dict[str, str]]:
-    """构造美团分析 Prompt.
-
-    Args:
-        question: 分析问题.
-        data_summary: 数据摘要.
-
-    Returns:
-        消息列表.
-    """
+def build_analysis_prompt(question: str, data_summary: str) -> list[dict[str, str]]:
+    """构造数据分析 Prompt."""
     builder = PromptBuilder()
-    builder.set_system(MEITUAN_SYSTEM)
+    builder.set_system(ANALYSIS_SYSTEM)
     builder.add_context(f"数据摘要:\n{data_summary}")
     builder.set_user(question)
     builder.add_constraint("回答必须基于提供的数据")

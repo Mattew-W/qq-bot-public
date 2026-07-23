@@ -1,6 +1,15 @@
 """LLM 服务 - 统一封装所有大模型调用.
 
-支持多模型切换：LongCat / OpenAI / DeepSeek / Claude / Gemini。
+支持所有兼容 OpenAI Chat Completions 接口的模型服务：
+- OpenAI (GPT-4o / GPT-4o-mini / o1 等)
+- DeepSeek
+- Claude (via Anthropic-compatible API)
+- Google Gemini
+- 通义千问 (Qwen)
+- 智谱 GLM
+- Moonshot
+- 任何兼容 OpenAI 格式的自部署模型
+
 业务代码只依赖 LLMService，不直接接触具体模型 API。
 """
 
@@ -9,7 +18,7 @@ from __future__ import annotations
 import time
 from typing import Any, AsyncGenerator
 
-from adapters.longcat_adapter import LongCatAdapter, get_longcat_adapter
+from adapters.llm_adapter import LLMAdapter, get_llm_adapter
 from config import get_settings
 from core.exceptions import LLMException
 from core.logger import get_logger
@@ -25,8 +34,8 @@ class LLMService:
     封装所有 LLM 调用，支持多模型切换。
     """
 
-    def __init__(self, adapter: LongCatAdapter | None = None) -> None:
-        self._adapter = adapter or get_longcat_adapter()
+    def __init__(self, adapter: LLMAdapter | None = None) -> None:
+        self._adapter = adapter or get_llm_adapter()
         self._settings = get_settings()
 
     async def ask(
@@ -54,8 +63,8 @@ class LLMService:
         Raises:
             LLMException: 调用失败时抛出.
         """
-        temp = temperature if temperature is not None else self._settings.LONGCAT_TEMPERATURE
-        tokens = max_tokens if max_tokens is not None else self._settings.LONGCAT_MAX_TOKENS
+        temp = temperature if temperature is not None else self._settings.LLM_TEMPERATURE
+        tokens = max_tokens if max_tokens is not None else self._settings.LLM_MAX_TOKENS
 
         start_time = time.monotonic()
         success = True
@@ -106,7 +115,7 @@ class LLMService:
             await self._record_usage(
                 user_id=user_id,
                 group_id=group_id,
-                model=self._settings.LONGCAT_MODEL,
+                model=self._settings.LLM_MODEL,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 total_tokens=total_tokens,
@@ -131,8 +140,8 @@ class LLMService:
         Yields:
             回复内容片段.
         """
-        temp = temperature if temperature is not None else self._settings.LONGCAT_TEMPERATURE
-        tokens = max_tokens if max_tokens is not None else self._settings.LONGCAT_MAX_TOKENS
+        temp = temperature if temperature is not None else self._settings.LLM_TEMPERATURE
+        tokens = max_tokens if max_tokens is not None else self._settings.LLM_MAX_TOKENS
 
         async for chunk in self._adapter.stream_chat(
             messages=messages,

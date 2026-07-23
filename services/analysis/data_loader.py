@@ -7,10 +7,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from core.exceptions import MeituanException
+from core.exceptions import AnalysisException
 from core.logger import get_logger
 
-logger = get_logger("meituan.loader")
+logger = get_logger("analysis.loader")
 
 
 class DataLoader:
@@ -30,12 +30,12 @@ class DataLoader:
             数据记录列表.
 
         Raises:
-            MeituanException: 文件不存在或格式不支持.
+            AnalysisException: 文件不存在或格式不支持.
         """
         path = Path(file_path)
 
         if not path.exists():
-            raise MeituanException(f"文件不存在: {file_path}")
+            raise AnalysisException(f"文件不存在: {file_path}")
 
         suffix = path.suffix.lower()
 
@@ -46,7 +46,7 @@ class DataLoader:
         elif suffix == ".json":
             return DataLoader._load_json(path)
         else:
-            raise MeituanException(f"不支持的文件格式: {suffix}")
+            raise AnalysisException(f"不支持的文件格式: {suffix}")
 
     @staticmethod
     def _load_csv(path: Path) -> list[dict[str, Any]]:
@@ -58,7 +58,6 @@ class DataLoader:
                 for row in reader:
                     records.append(dict(row))
         except UnicodeDecodeError:
-            # 尝试 GBK 编码
             with open(path, "r", encoding="gbk") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
@@ -73,14 +72,14 @@ class DataLoader:
         try:
             import openpyxl
         except ImportError:
-            raise MeituanException("请先安装 openpyxl: pip install openpyxl")
+            raise AnalysisException("请先安装 openpyxl: pip install openpyxl")
 
         wb = openpyxl.load_workbook(path, read_only=True)
         try:
             ws = wb.active
 
             if ws is None:
-                raise MeituanException("Excel 文件无有效工作表")
+                raise AnalysisException("Excel 文件无有效工作表")
 
             rows = list(ws.iter_rows(values_only=True))
             if len(rows) < 2:
@@ -107,10 +106,9 @@ class DataLoader:
         if isinstance(data, list):
             return data
         elif isinstance(data, dict):
-            # 尝试提取列表
             for key, val in data.items():
                 if isinstance(val, list):
                     return val
             return [data]
         else:
-            raise MeituanException("JSON 格式不正确，需要对象列表")
+            raise AnalysisException("JSON 格式不正确，需要对象列表")
