@@ -201,6 +201,9 @@ docker run -d \
 | `manage-bot.bat` | 单控 bot（停止/启动/重启/状态/实时日志），**不影响 NapCat**，便于上传更新 |
 | `monitor.bat` + `bot_monitor.pyw` | 实时监控窗口：彩色日志滚动 + 服务状态 + 停/重启按钮（同 NapCat 控制台体验） |
 | `uninstall-all.bat` | 卸载服务与计划任务 |
+| `run_bot.bat` | 自修复启动器（NSSM 服务实际调用它）：venv 缺失自动重建、依赖缺失自动离线/联网安装 |
+| `repair.bat` | 一键诊断+修复：双击自动检查并重建服务、启动，末尾 `pause` 防闪退 |
+| `download_wheels.bat` | 生成离线依赖缓存（放服务器桌面 `%PUBLIC%\Desktop\wheels`，免去每次联网/整包上传带 wheels） |
 
 **使用流程：**
 1. 配置好 `.env` 后，双击 `scripts\setup.bat` 建好虚拟环境

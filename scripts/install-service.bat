@@ -14,16 +14,15 @@ set DESCRIPTION=QQ Group Bot based on NoneBot2 + OneBot v11
 set PROJECT_DIR=%~dp0..
 set PYTHON_EXE=%PROJECT_DIR%\venv\Scripts\python.exe
 set BOT_SCRIPT=%PROJECT_DIR%\bot.py
+set RUN_BOT=%~dp0run_bot.bat
 set LOG_DIR=%PROJECT_DIR%\logs
 set NSSM_DIR=%PROJECT_DIR%\tools\nssm
 set NSSM_EXE=
 
 REM ---- Sanity checks ----
 if not exist "%PYTHON_EXE%" (
-    echo [ERROR] venv not found at: %PYTHON_EXE%
-    echo Run scripts\setup.bat first.
-    pause
-    exit /b 1
+    echo [WARN] venv not found at: %PYTHON_EXE%
+    echo The self-healing launcher run_bot.bat will create it on first start.
 )
 if not exist "%BOT_SCRIPT%" (
     echo [ERROR] bot.py not found at: %BOT_SCRIPT%
@@ -57,8 +56,10 @@ REM ---- Remove old service if exists ----
 "%NSSM_EXE%" remove %SERVICE_NAME% confirm >nul 2>&1
 
 REM ---- Install and configure the service ----
+REM App points to the self-healing launcher (not python directly),
+REM so a wiped venv is rebuilt automatically on start.
 echo Installing Windows service...
-"%NSSM_EXE%" install %SERVICE_NAME% "%PYTHON_EXE%" "%BOT_SCRIPT%"
+"%NSSM_EXE%" install %SERVICE_NAME% cmd.exe /c "%RUN_BOT%"
 "%NSSM_EXE%" set %SERVICE_NAME% DisplayName "%DISPLAY_NAME%"
 "%NSSM_EXE%" set %SERVICE_NAME% Description "%DESCRIPTION%"
 "%NSSM_EXE%" set %SERVICE_NAME% AppDirectory "%PROJECT_DIR%"

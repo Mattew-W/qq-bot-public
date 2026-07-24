@@ -75,11 +75,33 @@ if exist "%PROJECT_DIR%\venv\Scripts\python.exe" (
     )
 )
 
-REM ---- Install dependencies (use venv python directly, no activate needed) ----
+REM ---- Install dependencies (offline from server-local wheels cache) ----
 echo.
 echo Installing dependencies (this may take a few minutes)...
-"%PROJECT_DIR%\venv\Scripts\python.exe" -m pip install --upgrade pip
-"%PROJECT_DIR%\venv\Scripts\python.exe" -m pip install -e "%PROJECT_DIR%"
+REM Locate the offline cache (server Desktop, NOT in the project folder):
+REM Public Desktop (visible on desktop + readable by the SYSTEM
+REM service account), Administrator Desktop, C:\wheels, then project.
+set "WHEELS_DIR="
+if exist "%PUBLIC%\Desktop\wheels" set "WHEELS_DIR=%PUBLIC%\Desktop\wheels"
+if not defined WHEELS_DIR if exist "C:\Users\Administrator\Desktop\wheels" set "WHEELS_DIR=C:\Users\Administrator\Desktop\wheels"
+if not defined WHEELS_DIR if exist "C:\wheels" set "WHEELS_DIR=C:\wheels"
+if not defined WHEELS_DIR if exist "%PROJECT_DIR%\wheels" set "WHEELS_DIR=%PROJECT_DIR%\wheels"
+if defined WHEELS_DIR echo wheels cache found: %WHEELS_DIR%
+if exist "%WHEELS_DIR%" (
+    echo wheels cache found, installing offline...
+    "%PROJECT_DIR%\venv\Scripts\python.exe" -m pip install --upgrade pip --no-index --find-links "%WHEELS_DIR%" 2>nul
+    REM Build isolation pulls hatchling + its deps from the cache.
+    "%PROJECT_DIR%\venv\Scripts\python.exe" -m pip install --no-index --find-links "%WHEELS_DIR%" -e "%PROJECT_DIR%"
+    if errorlevel 1 (
+        echo [WARN] offline install failed, falling back to network...
+        "%PROJECT_DIR%\venv\Scripts\python.exe" -m pip install --upgrade pip
+        "%PROJECT_DIR%\venv\Scripts\python.exe" -m pip install -e "%PROJECT_DIR%"
+    )
+) else (
+    echo wheels cache not found, installing from network...
+    "%PROJECT_DIR%\venv\Scripts\python.exe" -m pip install --upgrade pip
+    "%PROJECT_DIR%\venv\Scripts\python.exe" -m pip install -e "%PROJECT_DIR%"
+)
 if errorlevel 1 (
     echo.
     echo [ERROR] Failed to install dependencies.

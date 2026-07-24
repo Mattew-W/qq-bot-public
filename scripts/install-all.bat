@@ -67,4 +67,7 @@ echo          scripts\monitor.bat          (live log window)
 echo          scripts\manage-bot.bat       (kill/start/restart bot only)
 echo          scripts\uninstall-all.bat    (remove service + task)
 echo ==========================================================
+echo.
+echo Install finished. Press any key to close this window.
+pause
 endlocal
