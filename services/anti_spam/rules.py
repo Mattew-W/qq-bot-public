@@ -257,6 +257,18 @@ class RepeatRule(SpamRule):
         return RuleResult(rule_name=self.name, hit=False)
 
 
+# 微信引流信号检测（供 GroupInviteRule 复用，与 WechatRule 模式一致）
+_WECHAT_SIGNAL_RE = re.compile(
+    r"(?:微信|wx|vx)[号:]?\s*[a-zA-Z0-9_-]{6,20}|微[信]?[号]?[：:]",
+    re.IGNORECASE,
+)
+
+
+def _has_wechat_signal(message: str) -> bool:
+    """是否含微信引流信号（微信号 / wx / vx / 微信: 等）。"""
+    return bool(_WECHAT_SIGNAL_RE.search(message))
+
+
 class WechatRule(SpamRule):
     """微信号规则 - 检测微信相关."""
 
@@ -268,7 +280,7 @@ class WechatRule(SpamRule):
         r"微[信]?[号]?[：:]",
     ]
 
-    def __init__(self, score: int = 35) -> None:
+    def __init__(self, score: int = 50) -> None:
         super().__init__("wechat_detector", score)
         self.patterns = [re.compile(p, re.IGNORECASE) for p in self.WECHAT_PATTERNS]
 
@@ -337,14 +349,20 @@ class GroupInviteRule(SpamRule):
         # 外部号码（排除当前群号本身）
         external = [q for q in extract_qq_numbers(message) if q != group_id]
         has_image = bool(context.get("has_image", False))
+        has_wechat = _has_wechat_signal(message)
+        has_phone = bool(extract_phone_numbers(message))
 
-        # 有关键词但既没号码也没图片 → 可能是正常提问，不踢
-        if not external and not has_image:
+        # 有关键词但既没 QQ 号/图片，也没微信/手机 → 可能是正常提问，不踢
+        if not external and not has_image and not has_wechat and not has_phone:
             return RuleResult(rule_name=self.name, hit=False)
 
         reason = "群邀请/二维码广告"
         if external:
             reason += f": {external[0]}"
+        elif has_wechat:
+            reason += ": 含微信引流"
+        elif has_phone:
+            reason += ": 含手机号"
         elif has_image:
             reason += ": 含图片"
 
@@ -372,7 +390,7 @@ def get_default_rules() -> list[SpamRule]:
             "贷款", "信用卡套现", "代办", "代开",
             "加群", "拉群", "拉你进群",
         ]),
-        WechatRule(score=35),
+        WechatRule(score=50),
         ContactRule(score=35),
         UrlRule(score=20),
         QRCodeRule(score=25),
