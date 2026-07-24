@@ -189,6 +189,27 @@ docker run -d \
    - URL：`ws://127.0.0.1:8080`
    - Access Token：留空（或填写你在 `.env` 中设置的值）
 
+#### Windows 开机自启 + 实时监控（生产部署推荐）
+
+`scripts/` 下提供一组一键脚本：把 bot 注册为 Windows 服务（无黑框、断 RDP 不死、崩溃自启），NapCat 注册为登录自启任务，并附带仿 NapCat 控制台的实时监控窗口。
+
+| 脚本 | 作用 |
+|------|------|
+| `setup.bat` | 自动探测 Python 并创建 `venv`、安装依赖（无需手动配 PATH） |
+| `install-all.bat` | 一键安装：QQBot → NSSM 服务；NapCat → 登录自启计划任务 |
+| `install-napcat-autostart.bat` | 单独注册 NapCat 登录自启任务（如需分离安装） |
+| `manage-bot.bat` | 单控 bot（停止/启动/重启/状态/实时日志），**不影响 NapCat**，便于上传更新 |
+| `monitor.bat` + `bot_monitor.pyw` | 实时监控窗口：彩色日志滚动 + 服务状态 + 停/重启按钮（同 NapCat 控制台体验） |
+| `uninstall-all.bat` | 卸载服务与计划任务 |
+
+**使用流程：**
+1. 配置好 `.env` 后，双击 `scripts\setup.bat` 建好虚拟环境
+2. 双击 `scripts\install-all.bat` 注册服务
+3. 首次登录：`schtasks /run /tn "NapCatAutoStart"` → 扫码登录（仅此一次）
+4. 双击 `scripts\monitor.bat` 实时查看状态
+
+> 说明：NapCat 是 GUI 程序，不能放进 NSSM 的 Session 0，故以"仅当用户登录时运行"的计划任务启动，使二维码窗口可在桌面显示。`install-napcat-autostart.bat` 顶部的 `NAPCAT_DIR` 若与你的安装路径不同，请自行修改。
+
 ## 五、插件开发
 
 框架基于 NoneBot2 插件系统。要添加新功能：
