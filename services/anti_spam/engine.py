@@ -61,10 +61,13 @@ class AntiSpamService:
         # 3. 确定动作
         action = self._decide_action(risk_score)
 
-        # 汇总所有规则要求撤回的消息 ID（从第一条开始删除）
+        # 汇总所有规则要求撤回的消息 ID（从第一条开始删除）。
+        # 连带撤回闸门: 仅当命中规则允许连带撤回(chain_delete=True)时,
+        # 才把该规则声索的 withdraw_ids 纳入撤回。规则可设 chain_delete=False
+        # 退出(如纯媒体引流只踢不撤, 守"识别到二维码才撤"铁律)。
         withdraw_ids: list[str] = []
         for r in rule_results:
-            if r.hit and r.withdraw_ids:
+            if r.hit and r.chain_delete and r.withdraw_ids:
                 for mid in r.withdraw_ids:
                     if mid not in withdraw_ids:
                         withdraw_ids.append(mid)

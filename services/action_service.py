@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -24,6 +26,11 @@ class ActionService:
 
     根据反垃圾结果执行相应动作。
     """
+
+    # 已尝试撤回的消息ID -> 最近尝试时间戳(单调时钟), 防同一条消息在
+    # 连发触发中被反复撤回(雪崩)。冷却期内再次遇到同一条直接跳过。
+    _withdraw_dedup: dict[str, float] = {}
+    _DEDUP_TTL = 120.0  # 同一条消息 120s 内不再重复发起撤回
 
     async def execute(
         self,
@@ -162,21 +169,36 @@ class ActionService:
         except Exception as e:
             logger.warning(f"警告记录失败: {e}")
 
-    async def _withdraw_message(self, bot: Any, group_id: str, message_id: str) -> None:
+    async def _withdraw_message(self, bot: Any, group_id: str, message_id: str) -> bool:
         """撤回消息.
 
         Args:
             bot: Bot 实例.
             group_id: 群 ID.
             message_id: 消息 ID.
+
+        Returns:
+            是否成功撤回。NapCat 偶发 retcode=1200 超时但 QQ 内核实际已撤回
+            (EventRet.result=0) 时判定为成功(假失败), 避免误报失败。
         """
         try:
             await bot.call_api(
                 "delete_msg",
                 message_id=int(message_id),
             )
+            return True
         except Exception as e:
-            logger.warning(f"撤回消息失败: {e}")
+            # 识别"假失败": NapCat 偶发超时(retcode=1200)但 QQ 内核实际已处理
+            retcode = getattr(e, "retcode", None)
+            data = getattr(e, "data", None) or {}
+            result_code = data.get("result") if isinstance(data, dict) else None
+            if retcode == 1200 and result_code == 0:
+                logger.info(
+                    f"撤回消息 {message_id} 实际已成功(假失败 retcode=1200 result=0)"
+                )
+                return True
+            logger.warning(f"撤回消息 {message_id} 失败: {e}")
+            return False
 
     async def _withdraw_extra(
         self,
@@ -186,16 +208,36 @@ class ActionService:
         extra_message_ids: list[str] | None,
         result: dict[str, Any],
     ) -> None:
-        """撤回当前消息 + 所有连发重复的历史消息（从第一条开始），并写入 result."""
+        """撤回当前消息 + 所有 extra 消息。
+
+        去重(防连发触发雪崩) + 每条间限流(降 QQ 侧召回超时概率) + 假失败识别,
+        并把撤回/失败/跳过计数写入 result。
+        """
         all_ids = list(dict.fromkeys([message_id, *(extra_message_ids or [])]))
+        now = time.monotonic()
         withdrawn = 0
+        failed = 0
+        skipped = 0
         for mid in all_ids:
-            try:
-                await self._withdraw_message(bot, group_id, mid)
+            # 去重: 冷却期内已尝试过 → 跳过, 不重复发起撤回(防雪崩)
+            if mid in self._withdraw_dedup and (now - self._withdraw_dedup[mid]) < self._DEDUP_TTL:
+                skipped += 1
+                continue
+            self._withdraw_dedup[mid] = now
+            if await self._withdraw_message(bot, group_id, mid):
                 withdrawn += 1
-            except Exception as e:
-                logger.warning(f"撤回消息 {mid} 失败: {e}")
+            else:
+                failed += 1
+            # 每条之间限流, 降低 QQ 侧召回超时概率
+            await asyncio.sleep(0.3)
+        # 定期清理过期条目, 避免字典无限增长
+        if len(self._withdraw_dedup) > 1000:
+            self._withdraw_dedup = {
+                k: v for k, v in self._withdraw_dedup.items() if now - v < self._DEDUP_TTL
+            }
         result["withdrawn_count"] = withdrawn
+        result["withdraw_failed_count"] = failed
+        result["withdraw_skipped_count"] = skipped
 
     async def _ban_user(
         self,

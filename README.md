@@ -292,7 +292,11 @@ qq-bot/
 ├── services/               # 业务逻辑
 │   ├── llm_service.py      # LLM 统一服务
 │   ├── knowledge_service.py # 知识库
-│   ├── anti_spam_service.py # 反垃圾引擎
+│   ├── anti_spam/          # 反垃圾（规则引擎 + LLM 二次确认）
+│   │   ├── rules.py         # 默认规则集（关键词/重复/引流/广告…）
+│   │   ├── rules_reference.py # 参考示例：场景化自定义规则（非默认加载，可照抄）
+│   │   ├── engine.py        # 规则引擎 + 风险评分 + 动作决策
+│   │   └── message_tracker.py # 用户消息追踪（连带撤回用）
 │   ├── action_service.py   # 动作执行
 │   ├── conversation_service.py # 对话管理
 │   ├── prompt_builder.py   # Prompt 构造

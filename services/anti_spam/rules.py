@@ -26,6 +26,10 @@ class RuleResult:
     score: int = 0
     metadata: dict = field(default_factory=dict)
     withdraw_ids: list[str] = field(default_factory=list)
+    # 是否允许"连带撤回"(把该规则声索的 withdraw_ids 纳入统一撤回)。
+    # 默认 True。纯媒体引流规则(如 click_avatar)设 False: 按铁律
+    # "识别到二维码才撤", 这类无二维码的图/视频不应被自动撤回, 只踢人。
+    chain_delete: bool = True
 
 
 class SpamRule:
