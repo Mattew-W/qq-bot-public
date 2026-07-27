@@ -379,6 +379,47 @@ class GroupInviteRule(SpamRule):
         )
 
 
+class SchoolTopicRule(SpamRule):
+    """学校话题弱信号 - 多个学校话题词 + 媒体 → 弱分, 交 LLM 确认.
+
+    用于识别"伪装校园通知/新生指南 + 引流材料"组合（C 方案多消息聚合后，
+    话术文字与视频/图片合并送审）。单条纯文字多话题词（日常聊学校话题）不触发，
+    避免 LLM 调用滥用；仅当消息含媒体(图片/视频)时才视为可疑组合。
+
+    命中只给弱分(不直撤)，交由引擎的 LLM 二次确认看完整上下文(话术+媒体)判断。
+    需配合 C 方案的消息聚合，才能把"纯视频/文档 + 同批文字话术"组合送进 LLM。
+    """
+
+    # 具体校园场景词(不含"大学/大一"等日常高频泛词，降低误触发)
+    SCHOOL_TOPICS = [
+        "学生会", "转专业", "社团纳新", "入团入党", "竞选班委",
+        "宿舍安排", "军训", "录取通知书", "奖助学金", "学籍",
+        "入党", "转团", "专业调剂", "入学定金", "转班",
+    ]
+    MIN_TOPICS = 3
+
+    def __init__(self, score: int = 15) -> None:
+        super().__init__("school_topic", score)
+
+    async def check(self, message: str, context: dict[str, Any]) -> RuleResult:
+        has = sum(1 for kw in self.SCHOOL_TOPICS if kw in message)
+        if has < self.MIN_TOPICS:
+            return RuleResult(rule_name=self.name, hit=False)
+        # 仅当消息含媒体(图片/视频)时，话题词组合才可疑(伪装校园通知+引流材料)。
+        # 纯文字多话题词(日常聊学校话题)不触发，避免 LLM 调用滥用。
+        # 注: C 聚合后 check 的 has_media 是当前消息(视频/图片)的媒体标志，
+        #     聚合文本里的话题词由此被纳入 LLM 确认范围。
+        has_media = bool(context.get("has_media", False))
+        if not has_media:
+            return RuleResult(rule_name=self.name, hit=False)
+        return RuleResult(
+            rule_name=self.name,
+            hit=True,
+            reason=f"校园话题词×{has}+媒体(疑似伪装校园引流, 交LLM确认)",
+            score=self.score,
+        )
+
+
 # === 默认规则集 ===
 
 def get_default_rules() -> list[SpamRule]:
@@ -400,4 +441,5 @@ def get_default_rules() -> list[SpamRule]:
         QRCodeRule(score=25),
         RepeatRule(score=55, threshold=4, invite_threshold=3),
         GroupInviteRule(score=90),
+        SchoolTopicRule(score=15),
     ]

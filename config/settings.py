@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     ANTISPAM_THRESHOLD_KICK: int = 90
     # 是否跳过管理员/群主消息不做反垃圾检查。
     ANTISPAM_SKIP_ADMIN: bool = True
+    # 用户短窗口消息聚合（C 方案：复合消息合并检测）。
+    # 同用户在 N 秒内连发的多条消息（text/video/image/file）合并成一段文本
+    # 走规则引擎，解决"纯视频/文档不携带话术、但同批文字含伪装话术"导致的漏检。
+    # 默认 30 秒；设 0 关闭聚合（每条消息独立检测，回退到旧行为）。
+    ANTISPAM_AGGREGATE_WINDOW: int = 30
 
     # === 数据分析配置 ===
     DATA_ANALYSIS_DIR: str = "./data/analysis"

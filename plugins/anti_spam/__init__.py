@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json as _json
 import re as _re
+import time
+from collections import deque
 
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
@@ -20,6 +22,65 @@ from services.anti_spam.message_tracker import get_message_tracker
 from utils.helpers import clean_text
 
 logger = get_logger("plugin.antispam")
+
+
+# ---- 用户短窗口消息聚合（C 方案：复合消息合并检测）----
+# 同用户在短窗口内的多条连发消息（text/video/image/file）合并成一段文本
+# 走规则引擎，解决"纯视频/文档不携带话术、但同批文字含伪装话术"导致的漏检。
+# 例如：user 先发"添加：还加加大一新生物…(校园话术)"，30s 内又发一条纯视频，
+# 旧逻辑只拿纯视频走规则 → risk=0 漏检；聚合后拿"话术+视频"走规则 → 命中。
+# 撤回由插件层 chain_delete（已按 message_tracker 拉该用户窗口内所有消息）自动覆盖。
+_user_msg_cache: dict[tuple[str, str], "deque[_AggEntry]"] = {}
+# 单用户最多缓存条目数（防御异常高频发消息刷内存）
+_USER_CACHE_MAX = 20
+
+
+class _AggEntry:
+    """一条消息的检测用文本快照。"""
+
+    __slots__ = ("ts", "message_id", "text")
+
+    def __init__(self, ts: float, message_id: str, text: str) -> None:
+        self.ts = ts
+        self.message_id = message_id
+        self.text = text
+
+
+def _get_aggregate_text(
+    group_id: str, user_id: str, current: _AggEntry
+) -> tuple[str, list[str]]:
+    """取该用户窗口内的所有消息文本，合并返回 (聚合文本, 所有 message_id)。
+
+    聚合文本 = 窗口内每条消息的「检测用文本」(含 OCR / 卡片原文) 用换行拼接；
+    message_id 列表供命中后交由插件层 chain_delete 一并撤回。
+    """
+    window = float(get_settings().ANTISPAM_AGGREGATE_WINDOW)
+    if window <= 0:
+        # 聚合关闭：只返回当前消息本身
+        return (current.text, [current.message_id] if current.message_id else [])
+    now = time.time()
+    key = (group_id, user_id)
+    q = _user_msg_cache.get(key)
+    if q is None:
+        q = deque()
+        _user_msg_cache[key] = q
+    # 清掉过期条目
+    while q and now - q[0].ts > window:
+        q.popleft()
+    # 入队当前消息
+    q.append(current)
+    # 防御：异常高频场景截断，保留最近 N 条
+    while len(q) > _USER_CACHE_MAX:
+        q.popleft()
+    parts: list[str] = []
+    ids: list[str] = []
+    for e in q:
+        if e.text:
+            parts.append(e.text)
+        if e.message_id:
+            ids.append(e.message_id)
+    return "\n".join(parts), ids
+
 
 # 响应器 - 监听所有群消息 (低优先级)
 antispam_checker = on_message(priority=1, block=False)
@@ -128,6 +189,8 @@ async def check_message(
     """检查群消息是否为垃圾信息."""
     message_text = clean_text(text or "")
     has_image = any(seg.type == "image" for seg in event.message)
+    has_video = any(seg.type in ("video", "shortvideo") for seg in event.message)
+    has_media = has_image or has_video
     # 提取卡片消息（群邀请/分享等 xml/json 卡片，纯文本为空）信号
     group_id_raw = str(event.group_id)
     card_text, card_debug = await _extract_card_signals(event, group_id_raw)
@@ -160,13 +223,26 @@ async def check_message(
             combined = (combined + "\n" + ocr_text).strip() if combined else ocr_text
             logger.info(f"反垃圾：图片 OCR 识别 user={user_id} text={ocr_text[:60]}")
 
-    # 执行反垃圾检查（传入 message_id 供重复规则追踪，has_image 供群邀请规则判断）
+    # ---- C 方案: 用户短窗口消息聚合检测 ----
+    # 把本消息的检测用文本(combined, 已含 OCR/卡片原文)存入缓存,
+    # 取窗口内同用户所有连发消息合并后走规则引擎。这能识别"纯视频/文档 +
+    # 同批文字伪装话术"组合(旧逻辑只拿纯视频走规则会漏检), 不依赖 opencv
+    # 能否解出视频帧二维码。撤回由插件层 chain_delete(按 message_tracker 拉该用户
+    # 窗口内所有消息)自动覆盖。
+    _agg_entry = _AggEntry(time.time(), message_id, combined)
+    aggregate_text, _agg_ids = _get_aggregate_text(group_id, user_id, _agg_entry)
+    if aggregate_text != combined:
+        logger.info(
+            f"反垃圾：聚合检测 user={user_id} 窗口内 {len(_agg_ids)} 条消息合并评估"
+        )
+
+    # 执行反垃圾检查（传入 message_id 供重复规则追踪，has_media 供规则判断）
     result = await anti_spam_service.check(
-        message=combined,
+        message=aggregate_text,
         user_id=user_id,
         group_id=group_id,
         message_id=message_id,
-        has_image=has_image,
+        has_media=has_media,
     )
 
     risk_score = result["risk_score"]

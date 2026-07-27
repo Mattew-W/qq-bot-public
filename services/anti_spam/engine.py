@@ -55,11 +55,12 @@ class AntiSpamService:
         # 1. 运行规则引擎
         rule_results = await self._run_rules(message, ctx)
 
-        # 2. 计算风险分
+        # 2. 计算风险分 + 可疑信号数
         risk_score = sum(r.score for r in rule_results if r.hit)
+        suspicious_count = sum(1 for r in rule_results if r.hit)
 
-        # 3. 确定动作
-        action = self._decide_action(risk_score)
+        # 3. 确定动作（弱信号单条命中也走 LLM 二次确认）
+        action = self._decide_action(risk_score, suspicious_count)
 
         # 汇总所有规则要求撤回的消息 ID（从第一条开始删除）。
         # 连带撤回闸门: 仅当命中规则允许连带撤回(chain_delete=True)时,
@@ -124,15 +125,20 @@ class AntiSpamService:
                 results.append(RuleResult(rule_name=rule.name, hit=False))
         return results
 
-    def _decide_action(self, risk_score: int) -> str:
-        """根据风险分决定动作."""
+    def _decide_action(self, risk_score: int, suspicious_count: int = 0) -> str:
+        """根据风险分 + 可疑信号数决定动作.
+
+        弱信号扩展: 即使总分不够 LLM 阈值, 但命中任意一条规则(可疑信号>=1)
+        也走 AI 确认, 避免"每条规则分数低但合起来明显可疑"的消息漏检
+        (如 C 方案聚合后的"话术+媒体"组合交给 LLM 判断).
+        """
         if risk_score >= self._settings.ANTISPAM_THRESHOLD_KICK:
             return "kick"
         elif risk_score >= self._settings.ANTISPAM_THRESHOLD_BAN:
             return "ban"
         elif risk_score >= self._settings.ANTISPAM_THRESHOLD_WITHDRAW:
             return "withdraw"
-        elif risk_score >= self._settings.ANTISPAM_THRESHOLD_LLM:
+        elif risk_score >= self._settings.ANTISPAM_THRESHOLD_LLM or suspicious_count >= 1:
             return "llm_confirm"
         else:
             return "log"
